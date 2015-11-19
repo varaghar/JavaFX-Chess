@@ -1,24 +1,38 @@
 package boardview;
 
-import java.util.List;
-import java.util.Map;
+import gamecontrol.ChessController;
 import gamecontrol.GameController;
 import gamecontrol.GameState;
 import gamecontrol.NetworkedChessController;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
+import model.IllegalMoveException;
 import model.Move;
 import model.Piece;
 import model.PieceType;
 import model.Position;
 import model.Side;
+import model.chess.ChessPiece.ChessPieceType;
 
 /**
  * A class for a view for a chess board. This class must have a reference
@@ -34,7 +48,11 @@ public class BoardView {
     private Tile[][] tiles;
     private Text sideStatus;
     private Text state;
+    Label turnLabel;
+    Label stateLabel;
     private boolean isRotated;
+    /* Instance variable needed to decide if click on tile was first or second click */
+    private Position selectedPiece;
 
     /**
      * Construct a BoardView with an instance of a GameController
@@ -51,6 +69,9 @@ public class BoardView {
         gridPane = new GridPane();
         gridPane.setStyle("-fx-background-color : goldenrod;");
         reset(controller);
+        selectedPiece = null;
+        controller.beginTurn();
+    	
     }
 
     /**
@@ -70,16 +91,48 @@ public class BoardView {
 
             // Don't change the code above this :)
             // TODO: call firstClick or secondClick, depending on which it is
+            //Check whose piece it is
+            Set<Move> moves =  ((ChessController)controller).getMovesForPieceAt(tile.getPosition());
+            if(selectedPiece == null && !moves.isEmpty()) {
+            	selectedPiece = tile.getPosition();
+            	firstClick(tile);
+            	
+            } else {
+	            if(selectedPiece!=null){
+	            	secondClick(tile);
+	            }
+            }
+            
         };
     }
-
-    /**
+    
+	/**
      * Perform the first click functions, like displaying
      * which are the valid moves for the piece you clicked.
      * @param tile The TileView that was clicked
      */
     private void firstClick(Tile tile) {
-        // TODO
+    	//TODO
+    	Set<Move> moves = controller.getMovesForPieceAt(selectedPiece);
+    	if((tile.getPosition().getRow() + tile.getPosition().getCol()) % 2 == 0) {
+    		tile.highlight(Color.WHEAT);
+    	} else {
+    		tile.highlight(Color.TAN);
+    	}
+    	
+    	Iterator<Move> moveIterator = moves.iterator();
+    	while(moveIterator.hasNext()){
+    		Move currentMove = moveIterator.next();
+    		Position destination = currentMove.getDestination();
+        	if((destination.getRow() + destination.getCol()) % 2 == 0) {
+        		tiles[destination.getRow()][destination.getCol()].highlight(Color.LIGHTGREEN);
+        	} else {
+        		tiles[destination.getRow()][destination.getCol()].highlight(Color.GREEN);
+        	}
+        	if (controller.moveResultsInCapture(currentMove)) {
+        		tiles[destination.getRow()][destination.getCol()].highlight(Color.RED);
+        	}
+    	}
     }
 
     /**
@@ -93,7 +146,40 @@ public class BoardView {
      * @param tile the TileView at which the second click occurred
      */
     private void secondClick(Tile tile) {
-        // TODO
+    	 // TODO
+    	//Clear allowed moves
+		Set<Move> moves = controller.getMovesForPieceAt(selectedPiece);
+    	Iterator<Move> moveIterator = moves.iterator();
+    	while(moveIterator.hasNext()){
+    		Move currentMove = moveIterator.next();
+    		Position destination = currentMove.getDestination();
+        	if((destination.getRow() + destination.getCol()) % 2 == 0) {
+        		tiles[destination.getRow()][destination.getCol()].clear();
+        	} else {
+        		tiles[destination.getRow()][destination.getCol()].clear();
+        	}
+    	}
+    	
+    	//Unselect
+    	getTileAt(selectedPiece).clear();
+
+    	Position target = tile.getPosition();
+    	//If valid move
+    	Move currentMove = new Move(selectedPiece,target);
+    	if(controller.getMovesForPieceAt(selectedPiece).contains(currentMove)){
+    		try {
+    			tiles[target.getRow()][target.getCol()].setSymbol("");
+				controller.makeMove(currentMove);
+				controller.endTurn();
+				controller.beginTurn();
+			} catch (IllegalMoveException e) {
+				//Should never happen
+				e.printStackTrace();
+			}
+    	}
+    
+    	selectedPiece = null;
+       
     }
 
     /**
@@ -107,6 +193,19 @@ public class BoardView {
      */
     public void updateView(Move moveMade, List<Position> capturedPositions) {
         // TODO
+    	Position start = moveMade.getStart();
+    	Position destination = moveMade.getDestination();
+    	getTileAt(start).setSymbol("");
+    	getTileAt(destination).setSymbol("");
+    	getTileAt(destination).setSymbol(controller.getSymbolForPieceAt(destination));
+    	for(int i=0;i<8;i++){
+			for(int j=0;j<8;j++){
+				tiles[i][j].clear();
+			}
+		}
+		tiles[destination.getRow()][destination.getCol()].highlight(Color.SANDYBROWN);
+		tiles[start.getRow()][start.getCol()].highlight(Color.BURLYWOOD);
+
     }
 
     /**
@@ -117,7 +216,23 @@ public class BoardView {
      */
     private PieceType handlePromotion() {
         // TODO
-        return null;
+        List<String> choices = new ArrayList<>();
+        
+        for(PieceType type : controller.getPromotionTypes()){
+        	choices.add(((ChessPieceType)type).name());
+        }
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("", choices);
+        dialog.setTitle("Promotion");
+        dialog.setHeaderText("You can promotw your Pawn!");
+        dialog.setContentText("Choose piece type:");
+
+        // Traditional way to get the response value.
+        
+        Optional<String> result = dialog.showAndWait();
+        String choice = result.orElse(ChessPieceType.PAWN.name());
+       
+        return ChessPieceType.valueOf(choice);
     }
 
     /**
@@ -129,6 +244,14 @@ public class BoardView {
      */
     public void handleGameStateChange(GameState s) {
         // TODO
+        stateLabel.setText(s.toString());
+        if(!s.toString().equals("White is in Check") && !s.toString().equals("Black is in Check") && !s.toString().equals("Ongoing")) {
+	        Alert alert = new Alert(AlertType.INFORMATION);
+	        alert.setTitle(s.toString());
+	        alert.setHeaderText(null);
+	        alert.setContentText("The game ended with: "+s.toString());
+	        alert.showAndWait();
+        }
     }
 
     /**
@@ -137,7 +260,7 @@ public class BoardView {
      * @param s The new Side whose turn it currently is
      */
     public void handleSideChange(Side s) {
-        // TODO
+       turnLabel.setText(s.toString());
     }
 
     /**
@@ -159,6 +282,7 @@ public class BoardView {
                 isRotated = true;
             }
         }
+
         sideStatus.setText(controller.getCurrentSide() + "'s Turn");
 
         // controller event handlers
@@ -205,12 +329,13 @@ public class BoardView {
                 GridPane.setHgrow(tile.getRootNode(), Priority.ALWAYS);
                 GridPane.setVgrow(tile.getRootNode(), Priority.ALWAYS);
                 getTiles()[row][col] = tile;
-                tile.getRootNode().setOnMouseClicked(
-                        tileListener(tile));
+                tile.getRootNode().setOnMouseClicked(tileListener(tile));
                 tile.clear();
                 tile.setSymbol("");
+               
             }
         }
+        
         /* Add the pieces */
         for (Piece p : pieces.keySet()) {
             Position placeAt = pieces.get(p);
