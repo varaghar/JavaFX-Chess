@@ -17,7 +17,6 @@ import model.PieceType;
 import model.Position;
 import model.Side;
 import model.SideHasNoMovesException;
-
 import model.chess.CastlingMove;
 import model.chess.ChessBoard;
 import model.chess.ChessPiece;

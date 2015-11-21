@@ -63,7 +63,7 @@ public class NetworkedChessController extends ChessController {
         super.beginTurn();
         if (mySide == Side.WHITE) {
             try (ServerSocket listener = new ServerSocket(1331)) {
-                // block while waiting for other player to join
+                // block while waiting for other player to join 
                 socket = listener.accept();
                 System.out.println(socket);
                 in = new BufferedReader(
@@ -194,7 +194,7 @@ public class NetworkedChessController extends ChessController {
     public void close() {
         try {
             socket.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

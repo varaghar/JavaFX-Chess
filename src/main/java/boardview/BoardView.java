@@ -69,9 +69,9 @@ public class BoardView {
         gridPane = new GridPane();
         gridPane.setStyle("-fx-background-color : goldenrod;");
         reset(controller);
+
         selectedPiece = null;
         controller.beginTurn();
-    	
     }
 
     /**
@@ -102,7 +102,6 @@ public class BoardView {
 	            	secondClick(tile);
 	            }
             }
-            
         };
     }
     
@@ -270,11 +269,14 @@ public class BoardView {
      * @param newController The new controller for this BoardView
      */
     public void reset(GameController newController) {
+
         if (controller instanceof NetworkedChessController) {
             ((NetworkedChessController) controller).close();
         }
+
         controller = newController;
         isRotated = false;
+        
         if (controller instanceof NetworkedChessController) {
             Side mySide
                 = ((NetworkedChessController) controller).getLocalSide();
@@ -282,7 +284,7 @@ public class BoardView {
                 isRotated = true;
             }
         }
-
+      
         sideStatus.setText(controller.getCurrentSide() + "'s Turn");
 
         // controller event handlers
@@ -305,6 +307,7 @@ public class BoardView {
 
         addPieces();
         controller.startGame();
+
         if (isRotated) {
             setBoardRotation(180);
         } else {

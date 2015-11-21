@@ -78,6 +78,7 @@ public class ChessFX extends Application {
     	    @Override public void handle(ActionEvent e) {
     	    	controller = new NetworkedChessController();
     	    	start(primaryStage);
+    	    	
     	    }
     	});
     	
@@ -105,8 +106,8 @@ public class ChessFX extends Application {
     	but1.getChildren().add(reset);
     	root.getChildren().add(but1);
     	
-    	board.stateLabel = new Label();
-    	board.turnLabel = new Label();
+    	board.stateLabel = new Label(controller.getCurrentState().toString());
+    	board.turnLabel = new Label(controller.getCurrentSide() + "'s Turn");
     	
     	HBox but0 = new HBox();
     	but0.setSpacing(10);
@@ -114,7 +115,7 @@ public class ChessFX extends Application {
     	but0.getChildren().add(board.turnLabel);
     	but0.getChildren().add(board.stateLabel);
     	root.getChildren().add(but0);
-    	
+
     	HBox but2 = new HBox();
     	but2.setSpacing(10);
     	but2.getChildren().add(ip);
