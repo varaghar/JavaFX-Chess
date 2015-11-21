@@ -1,7 +1,3 @@
----
-title: hw-chess 
----
-**Due:** November 20th, 2015 at 11:59 PM
 
 [Download Zip](https://github.gatech.edu/cs1331-fall2015/hw-chess/archive/master.zip)
 
